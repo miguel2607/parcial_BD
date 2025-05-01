@@ -1,97 +1,249 @@
 $(document).ready(function() {
-    // Cargar todos los datos iniciales
+    // Fetch and display categories
     $.ajax({
-        url: 'obtener_datos_inicio.php', // Correct URL for fetching initial data
-        type: 'GET', 
+        url: 'get_categorias.php',
+        method: 'GET',
         dataType: 'json',
-        success: function(data) {
-            // Cargar categorías
-            var categoriasContainer = $('#categorias-container');
-            categoriasContainer.empty();
-            $.each(data.categorias, function(index, categoria) {
-                categoriasContainer.append('<div class="col-md-3 mb-4"><div class="card"><div class="card-body"><h5 class="card-title">' + categoria.nombre + '</h5><a href="#" class="btn btn-outline-primary btn-sm">Ver más</a></div></div></div>');
-            });
-
-            // Cargar productos destacados
-            var productosContainer = $('#productos-container');
-            productosContainer.empty();
-            $.each(data.productos_destacados, function(index, producto) {
-                productosContainer.append('<div class="col-md-3 mb-4"><div class="card"><img src="' + producto.imagen + '" class="card-img-top" alt="' + producto.nombre + '"><div class="card-body"><h5 class="card-title">' + producto.nombre + '</h5><p class="card-text">$' + producto.precio + '</p><button class="btn btn-primary btn-sm detalles-producto" data-id="' + producto.id + '">Ver detalles</button></div></div></div>');
-            });
-
-            // Cargar reseñas destacadas
-            var resenasContainer = $('#resenas-container');
-            resenasContainer.empty();
-            $.each(data.resenas_destacadas, function(index, resena) {
-                resenasContainer.append('<div class="col-md-4 mb-3"><div class="card"><div class="card-body"><p class="card-text">"' + resena.contenido + '"</p><p class="card-text"><small class="text-muted">-' + resena.nombre_usuario + ' (' + '*'.repeat(resena.estrellas) + ')</small></p></div></div></div>');
+        success: function(categorias) {
+            const container = $('#categorias-container');
+            container.empty();
+            if (categorias.error) {
+                container.html('<p class="text-danger">Error al cargar categorías.</p>');
+                return;
+            }
+            categorias.forEach(categoria => {
+                const card = `
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm">
+                            <div class="card-body text-center">
+                                <h5 class="card-title">${categoria.nombre}</h5>
+                                <a href="#" class="btn btn-primary btn-sm categoria-link" data-id="${categoria.id}">Ver productos</a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.append(card);
             });
         },
         error: function() {
-            alert('Error al cargar los datos iniciales.');
+            $('#categorias-container').html('<p class="text-danger">Error al cargar categorías.</p>');
         }
     });
 
-    // Evento para mostrar detalles del producto
-    $(document).on('click', '.detalles-producto', function() {
-        var productoId = $(this).data('id');
-        $.ajax({
-            url: 'obtener_producto_detalles.php?id=' + productoId, // Mantiene el archivo separado para detalles
-            type: 'GET',
-            dataType: 'json',
-            success: function(data) {
-                $('#modal-producto-titulo').text(data.Nombre);
-                var contenidoModal = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <img src="${data.Imagenes ? data.Imagenes : 'https://via.placeholder.com/300'}" class="img-fluid rounded shadow" alt="${data.Nombre}">
-                        </div>
-                        <div class="col-md-6">
-                            <h3>${data.Nombre}</h3>
-                            <p class="lead">$${data.Precio}</p>
-                            <p><strong>Categoría:</strong> ${data.nombre_categoria}</p>
-                            <p>${data.Características}</p>
-                            ${data.Video ? `<p><a href="${data.Video}" target="_blank">Ver video</a></p>` : ''}
+    // Fetch and display products
+    $.ajax({
+        url: 'get_productos.php',
+        method: 'GET',
+        dataType: 'json',
+        success: function(productos) {
+            const container = $('#productos-container');
+            container.empty();
+            if (productos.error) {
+                container.html('<p class="text-danger">Error al cargar productos.</p>');
+                return;
+            }
+            productos.forEach(producto => {
+                const imagen = producto.imagenes || 'https://via.placeholder.com/300x200';
+                const card = `
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm">
+                            <img src="${imagen}" alt="${producto.nombre}" class="card-img-top">
+                            <div class="card-body">
+                                <h5 class="card-title">${producto.nombre}</h5>
+                                <p class="card-text">${producto.caracteristicas || 'Sin descripción'}</p>
+                                <p class="card-text"><strong>Categoría:</strong> ${producto.categoria}</p>
+                                <p class="card-text"><strong>Precio:</strong> $${producto.precio}</p>
+                                <button class="btn btn-primary btn-sm ver-detalles" data-id="${producto.id}">Ver detalles</button>
                             </div>
+                        </div>
                     </div>
                 `;
-                $('#modal-producto-contenido').html(contenidoModal);
-                $('#productoModal').modal('show');
-            },
-            error: function() {
-                alert('Error al cargar los detalles del producto con ID: ' + productoId);
-            }
-        });
+                container.append(card);
+            });
+        },
+        error: function() {
+            $('#productos-container').html('<p class="text-danger">Error al cargar productos.</p>');
+        }
     });
 
-    // Evento para el formulario de inicio de sesión (sin cambios)
-    $('#login-form').submit(function(event) {
-        event.preventDefault();
-        var nombre = $('#login-nombre').val();
-        var ciudad = $('#login-ciudad').val();
+    // Fetch and display reviews
+    $.ajax({
+        url: 'get_resenas.php',
+        method: 'GET',
+        dataType: 'json',
+        success: function(resenas) {
+            const container = $('#resenas-container');
+            container.empty();
+            if (resenas.error) {
+                container.html('<p class="text-danger">Error al cargar reseñas.</p>');
+                return;
+            }
+            resenas.forEach(resena => {
+                const estrellas = '★'.repeat(resena.estrella) + '☆'.repeat(5 - resena.estrella);
+                const card = `
+                    <div class="col-md-4 mb-4">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h6 class="card-title">${resena.producto}</h6>
+                                <p class="card-text">${resena.contenido}</p>
+                                <p class="card-text"><strong>Usuario:</strong> ${resena.usuario}</p>
+                                <p class="card-text"><strong>Calificación:</strong> <span class="text-warning">${estrellas}</span></p>
+                                <p class="card-text"><strong>Fecha:</strong> ${resena.fecha} ${resena.hora}</p>
+                                <p class="card-text"><strong>Likes:</strong> ${resena.like} | <strong>Dislikes:</strong> ${resena.disLike}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.append(card);
+            });
+        },
+        error: function() {
+            $('#resenas-container').html('<p class="text-danger">Error al cargar reseñas.</p>');
+        }
+    });
 
+    // Handle product details modal
+    $(document).on('click', '.ver-detalles', function() {
+        const productId = $(this).data('id');
         $.ajax({
-            url: 'login.php', // Mantiene el archivo separado para el login
-            type: 'POST',
+            url: 'get_productos.php',
+            method: 'GET',
             dataType: 'json',
-            data: { nombre: nombre, ciudad: ciudad },
-            success: function(response) {
-                if (response.success) {
-                    alert(response.mensaje + ' Bienvenido ' + response.usuario.Nombre + ' de ' + response.usuario.Ciudad);
-                    $('#loginModal').modal('hide');
-                    // Aquí podrías actualizar la interfaz de usuario para mostrar que el usuario ha iniciado sesión
-                } else {
-                    alert(response.mensaje);
+            success: function(productos) {
+                const producto = productos.find(p => p.id == productId);
+                if (producto) {
+                    const imagen = producto.imagenes || 'https://via.placeholder.com/600x400';
+                    const contenido = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <img src="${imagen}" alt="${producto.nombre}" class="img-fluid rounded">
+                            </div>
+                            <div class="col-md-6">
+                                <h4>${producto.nombre}</h4>
+                                <p><strong>Categoría:</strong> ${producto.categoria}</p>
+                                <p><strong>Precio:</strong> $${producto.precio}</p>
+                                <p><strong>Características:</strong> ${producto.caracteristicas || 'Sin descripción'}</p>
+                            </div>
+                        </div>
+                    `;
+                    $('#modal-producto-titulo').text(producto.nombre);
+                    $('#modal-producto-contenido').html(contenido);
+                    $('#productoModal').modal('show');
                 }
-            },
-            error: function() {
-                alert('Error al intentar iniciar sesión.');
             }
         });
     });
 
-    // Mostrar modal de inicio de sesión al hacer clic en el botón de usuario (sin cambios)
+    // Handle category filter
+    $(document).on('click', '.categoria-link', function(e) {
+        e.preventDefault();
+        const categoryId = $(this).data('id');
+        $.ajax({
+            url: 'get_productos.php',
+            method: 'GET',
+            dataType: 'json',
+            success: function(productos) {
+                const container = $('#productos-container');
+                container.empty();
+                const filteredProductos = productos.filter(p => p.id_categoria == categoryId);
+                if (filteredProductos.length === 0) {
+                    container.html('<p class="text-center">No hay productos en esta categoría.</p>');
+                    return;
+                }
+                filteredProductos.forEach(producto => {
+                    const imagen = producto.imagenes || 'https://via.placeholder.com/300x200';
+                    const card = `
+                        <div class="col-md-4 mb-4">
+                            <div class="card shadow-sm">
+                                <img src="${imagen}" alt="${producto.nombre}" class="card-img-top">
+                                <div class="card-body">
+                                    <h5 class="card-title">${producto.nombre}</h5>
+                                    <p class="card-text">${producto.caracteristicas || 'Sin descripción'}</p>
+                                    <p class="card-text"><strong>Categoría:</strong> ${producto.categoria}</p>
+                                    <p class="card-text"><strong>Precio:</strong> $${producto.precio}</p>
+                                    <button class="btn btn-primary btn-sm ver-detalles" data-id="${producto.id}">Ver detalles</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.append(card);
+                });
+            }
+        });
+    });
+
+    // Handle search functionality
+    $('#search-button').click(function() {
+        const query = $('#search-input').val().toLowerCase();
+        $.ajax({
+            url: 'get_productos.php',
+            method: 'GET',
+            dataType: 'json',
+            success: function(productos) {
+                const container = $('#productos-container');
+                container.empty();
+                const filteredProductos = productos.filter(p => p.nombre.toLowerCase().includes(query));
+                if (filteredProductos.length === 0) {
+                    container.html('<p class="text-center">No se encontraron productos.</p>');
+                    return;
+                }
+                filteredProductos.forEach(producto => {
+                    const imagen = producto.imagenes || 'https://via.placeholder.com/300x200';
+                    const card = `
+                        <div class="col-md-4 mb-4">
+                            <div class="card shadow-sm">
+                                <img src="${imagen}" alt="${producto.nombre}" class="card-img-top">
+                                <div class="card-body">
+                                    <h5 class="card-title">${producto.nombre}</h5>
+                                    <p class="card-text">${producto.caracteristicas || 'Sin descripción'}</p>
+                                    <p class="card-text"><strong>Categoría:</strong> ${producto.categoria}</p>
+                                    <p class="card-text"><strong>Precio:</strong> $${producto.precio}</p>
+                                    <button class="btn btn-primary btn-sm ver-detalles" data-id="${producto.id}">Ver detalles</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.append(card);
+                });
+            }
+        });
+    });
+
+    // Handle login modal
     $('#user-btn').click(function(e) {
         e.preventDefault();
         $('#loginModal').modal('show');
+    });
+
+    $('#login-form').submit(function(e) {
+        e.preventDefault();
+        const nombre = $('#login-nombre').val();
+        const ciudad = $('#login-ciudad').val();
+        // Simulate login (you can extend this to save user data to the database if needed)
+        localStorage.setItem('usuario', JSON.stringify({ nombre, ciudad }));
+        $('#loginModal').modal('hide');
+        alert(`Bienvenido, ${nombre}!`);
+    });
+
+    // Handle "Ver productos" button
+    $('#ver-productos').click(function() {
+        $('html, body').animate({
+            scrollTop: $('#productos-container').offset().top
+        }, 1000);
+    });
+
+    // Handle navigation links
+    $('#categorias-link').click(function(e) {
+        e.preventDefault();
+        $('html, body').animate({
+            scrollTop: $('#categorias-container').offset().top
+        }, 1000);
+    });
+
+    $('#productos-link').click(function(e) {
+        e.preventDefault();
+        $('html, body').animate({
+            scrollTop: $('#productos-container').offset().top
+        }, 1000);
     });
 });
