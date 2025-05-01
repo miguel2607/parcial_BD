@@ -1,8 +1,8 @@
 $(document).ready(function() {
     // Cargar todos los datos iniciales
     $.ajax({
-        url: 'obtener_datos_inicio.php',
-        type: 'GET',
+        url: 'obtener_datos_inicio.php', // Correct URL for fetching initial data
+        type: 'GET', 
         dataType: 'json',
         success: function(data) {
             // Cargar categorías
@@ -31,7 +31,7 @@ $(document).ready(function() {
         }
     });
 
-    // Evento para mostrar detalles del producto (sin cambios)
+    // Evento para mostrar detalles del producto
     $(document).on('click', '.detalles-producto', function() {
         var productoId = $(this).data('id');
         $.ajax({
@@ -58,7 +58,7 @@ $(document).ready(function() {
                 $('#productoModal').modal('show');
             },
             error: function() {
-                alert('Error al cargar los detalles del producto.');
+                alert('Error al cargar los detalles del producto con ID: ' + productoId);
             }
         });
     });
@@ -76,7 +76,7 @@ $(document).ready(function() {
             data: { nombre: nombre, ciudad: ciudad },
             success: function(response) {
                 if (response.success) {
-                    alert(response.mensaje + ', bienvenido ' + response.usuario.Nombre + ' de ' + response.usuario.Ciudad);
+                    alert(response.mensaje + ' Bienvenido ' + response.usuario.Nombre + ' de ' + response.usuario.Ciudad);
                     $('#loginModal').modal('hide');
                     // Aquí podrías actualizar la interfaz de usuario para mostrar que el usuario ha iniciado sesión
                 } else {
